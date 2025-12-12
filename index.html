@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation | Module SUP – ULTIMATE</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #0f172a;
+            --accent: #16a34a;
+            --warning: #f59e0b;
+            --bg: #f8fafc;
+            --text: #334155;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text); line-height: 1.6; }
+
+        /* HEADER */
+        header {
+            background: linear-gradient(135deg, var(--secondary) 0%, #1e293b 100%);
+            color: white;
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+        header h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem; }
+        header p { font-size: 1.2rem; opacity: 0.9; max-width: 600px; margin: 0 auto 2rem auto; }
+        .btn-download {
+            background-color: var(--accent);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-download:hover { transform: translateY(-2px); box-shadow: 0 10px 15px rgba(0,0,0,0.2); }
+
+        /* CONTAINER */
+        .container { max-width: 1000px; margin: 0 auto; padding: 2rem; }
+
+        /* SECTIONS */
+        section { margin-bottom: 4rem; }
+        h2 { color: var(--secondary); font-size: 1.8rem; margin-bottom: 1.5rem; border-left: 5px solid var(--primary); padding-left: 15px; }
+        h3 { color: var(--primary); font-size: 1.3rem; margin: 1.5rem 0 0.5rem 0; }
+
+        /* CARDS */
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .card { background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: var(--shadow); border: 1px solid #e2e8f0; }
+        .card-icon { font-size: 2rem; color: var(--primary); margin-bottom: 15px; }
+        
+        /* TIPS BOX */
+        .tips-box {
+            background: linear-gradient(to right, #eff6ff, #fff);
+            border-left: 4px solid var(--primary);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .tips-title { font-weight: bold; color: var(--primary-dark); margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+
+        /* INSTALL STEPS */
+        .step { display: flex; gap: 20px; margin-bottom: 30px; }
+        .step-number { 
+            background: var(--primary); color: white; width: 40px; height: 40px; 
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+            font-weight: bold; flex-shrink: 0; 
+        }
+        .step-content h4 { margin-bottom: 5px; color: var(--secondary); }
+        .browser-links a { margin-right: 10px; color: var(--primary); text-decoration: none; font-weight: 600; }
+        .browser-links a:hover { text-decoration: underline; }
+
+        /* FEATURE HIGHLIGHTS */
+        .badge-demo { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9rem; display: inline-block; }
+        .b-ok { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .b-bad { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .b-warn { background: #ffedd5; color: #9a3412; border: 1px solid #fdba74; }
+
+        /* FAQ */
+        details { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; box-shadow: var(--shadow); cursor: pointer; }
+        summary { font-weight: 600; color: var(--secondary); list-style: none; display: flex; justify-content: space-between; align-items: center; }
+        summary::after { content: '+'; font-size: 1.5rem; color: var(--primary); }
+        details[open] summary::after { content: '-'; }
+        details p { margin-top: 10px; color: #64748b; }
+
+        /* FOOTER */
+        footer { text-align: center; padding: 2rem; color: #64748b; font-size: 0.9rem; border-top: 1px solid #e2e8f0; margin-top: 4rem; }
+
+        @media (max-width: 600px) {
+            header h1 { font-size: 1.8rem; }
+            .step { flex-direction: column; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Module SUP – ULTIMATE</h1>
+        <p>L'assistant intelligent pour optimiser la modération : IA prédictive, Picking automatique et Export Excel.</p>
+        <a href="./Outil sup et pompier.txt" download="Outil sup et pompier.txt" class="btn-download">
+            <i class="fas fa-download"></i> Télécharger le Script
+        </a>
+        <div style="margin-top: 15px; font-size: 0.9rem; color: #cbd5e1;">Version 15.1</div>
+    </header>
+
+    <div class="container">
+
+        <!-- INSTALLATION -->
+        <section id="installation">
+            <h2>🚀 Installation Rapide</h2>
+            
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h4>Installer Tampermonkey</h4>
+                    <p>Ce module nécessite une extension de navigateur. Choisissez le lien pour votre navigateur :</p>
+                    <div class="browser-links" style="margin-top: 10px;">
+                        <a href="https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo" target="_blank"><i class="fab fa-chrome"></i> Chrome</a>
+                        <a href="https://addons.mozilla.org/fr/firefox/addon/tampermonkey/" target="_blank"><i class="fab fa-firefox"></i> Firefox</a>
+                        <a href="https://microsoftedge.microsoft.com/addons/detail/tampermonkey/iikmkjmpaadaobahmlepeloendndfphd" target="_blank"><i class="fab fa-edge"></i> Edge</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h4>Ajouter le Script</h4>
+                    <p>1. Téléchargez le fichier texte via le bouton vert ci-dessus et copiez son contenu.<br>
+                    2. Cliquez sur l'icône Tampermonkey > "Tableau de bord" > Onglet "+".<br>
+                    3. Collez tout le code et Sauvegardez (Ctrl+S).</p>
+                    <p style="color:var(--accent); font-weight:bold; margin-top:5px;">Rafraîchissez Moderatus, la barre d'outils doit apparaître en bas à gauche.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- FONCTIONNALITÉS -->
+        <section id="features">
+            <h2>🛠️ Les Fonctionnalités</h2>
+            
+            <div class="grid">
+                <div class="card">
+                    <div class="card-icon"><i class="fas fa-hand-pointer"></i></div>
+                    <h3>Picking & Export</h3>
+                    <p>Sélectionnez des messages sur plusieurs pages sans les perdre.</p>
+                    <p style="font-size:0.9rem; color:#64748b; margin-top:5px;">Utilisez "Traiter Picking" pour exporter en Excel (.xlsx) ou vider la mémoire.</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-icon"><i class="fas fa-robot"></i></div>
+                    <h3>IA Badges</h3>
+                    <div style="margin: 10px 0;">
+                        <span class="badge-demo b-ok">✅ OK (0%)</span>
+                        <span class="badge-demo b-warn">⚠️ A vérifier (35%)</span>
+                        <span class="badge-demo b-bad">❌ Hors charte (100%)</span>
+                    </div>
+                    <p>Analyse le texte et donne un score de toxicité plafonné à 100%.</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-icon"><i class="fas fa-ban"></i></div>
+                    <h3>Redline (Stricte)</h3>
+                    <p>Détecte uniquement les mots-clés exacts (ex: "con" ne sonne plus sur "constitution").</p>
+                    <p><b>Note :</b> La Redline affiche une alerte mais ne clique plus seule sur "Refus".</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- TRAINING SECTION (NOUVEAU) -->
+        <section id="training">
+            <h2>🧠 Masterclass : Entraîner l'IA</h2>
+            <p>Au début, l'IA est "vide". Elle ne connait rien. Voici la meilleure méthode pour la rendre intelligente très rapidement.</p>
+
+            <div class="tips-box">
+                <div class="tips-title"><i class="fas fa-star"></i> La technique "Sandwich" (Recommandée)</div>
+                <p>Pour une IA équilibrée, il faut lui montrer autant de messages sales que de messages propres. Si vous ne lui montrez que du sale, elle deviendra paranoïaque.</p>
+            </div>
+
+            <div class="grid" style="margin-top: 20px;">
+                <div class="card">
+                    <h3>Étape 1 : Le Négatif</h3>
+                    <p>1. Dans les filtres Moderatus, sélectionnez statut <b>"Refusé"</b>.</p>
+                    <p>2. Affichez <b>100 résultats</b> par page.</p>
+                    <p>3. Ouvrez le panneau IA et cliquez sur <b>"Apprendre Page"</b>.</p>
+                    <p><i>Répétez l'opération sur 3 à 5 pages différentes.</i></p>
+                </div>
+
+                <div class="card">
+                    <h3>Étape 2 : Le Positif</h3>
+                    <p>1. Changez le filtre pour statut <b>"Validé"</b>.</p>
+                    <p>2. Affichez <b>100 résultats</b> par page.</p>
+                    <p>3. Cliquez sur <b>"Apprendre Page"</b>.</p>
+                    <p><i>Répétez sur 3 à 5 pages. C'est crucial pour que l'IA apprenne les mots "sûrs".</i></p>
+                </div>
+
+                <div class="card">
+                    <h3>Étape 3 : Le Résultat</h3>
+                    <p>Après avoir appris environ <b>500 refusés</b> et <b>500 validés</b>, votre IA aura une base solide.</p>
+                    <p>Vous pouvez affiner le réglage avec la <b>Barre de Seuil</b> (Threshold) : descendez vers 20 pour plus de sévérité.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ -->
+        <section id="faq">
+            <h2>❓ Foire Aux Questions</h2>
+
+            <details>
+                <summary>Mon IA rejette tout, même "Bonjour", que faire ?</summary>
+                <p>C'est que vous lui avez appris trop de messages rejetés et pas assez de messages validés. Faites l'Étape 2 (Le Positif) sur quelques pages pour rééquilibrer la balance. Si c'est irrécupérable, faites "Reset IA".</p>
+            </details>
+
+            <details>
+                <summary>Mon IA ne trouve même pas des commentaires insultants </summary>
+                <p> Oui parce que c'est un modèle LITE créer pour aider mais en aucun cas pour faire ton travail! </p>
+            </details>
+
+            <details>
+                <summary>Comment vider le cache du Picking ?</summary>
+                <p>Appuyer sur vider dans l'onglet html, puis raffraichissez votre page sur moderatus. La prochaine fois que vous cliquerez sur Traiter Picking, un popup vous informera que c'est vide! </p>
+            </details>
+        </section>
+
+    </div>
+
+    <footer>
+        <p>&copy; 2025 Module SUP Ultimate. Documentation Interne.</p>
+    </footer>
+
+</body>
+</html>

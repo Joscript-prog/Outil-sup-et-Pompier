@@ -1,0 +1,456 @@
+// ==UserScript==
+// @name         Module SUP – ULTIMATE (V15.1 Badges)
+// @namespace    http://tampermonkey.net/
+// @version      15.1
+// @description  Picking Multi-pages, IA Badges (✅/❌), Redline, Export XLSX.
+// @match        https://moderatus.netino.com/*
+// @grant        GM_addStyle
+// @run-at       document-idle
+// ==/UserScript==
+
+(function() {
+"use strict";
+
+    /* ===========================================================
+       BLOC A : CONFIGURATION & STYLES
+       =========================================================== */
+    let db = null;
+    const STORAGE_KEY = "MODERATUS_PICKING_LIST";
+
+    let pickedComments = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+
+    window.clearPickingMemory = function() {
+        pickedComments = [];
+        localStorage.removeItem(STORAGE_KEY);
+        document.querySelectorAll("tr.picked-row").forEach(tr => tr.classList.remove("picked-row"));
+        updatePickButtonLabel();
+        console.log("Mémoire vidée.");
+    };
+
+    function updatePickButtonLabel() {
+        const btn = document.getElementById("btn-pick-all");
+        if(btn) btn.textContent = `Pick All (${pickedComments.length})`;
+    }
+
+    GM_addStyle(`
+    :root { --radius: 6px; --shadow: 0 4px 12px rgba(0,0,0,0.2); --dark: #1e293b; --red: #dc2626; --green: #16a34a; --blue: #2563eb; --orange: #d97706; }
+    body { font-family: 'Segoe UI', Arial, sans-serif !important; }
+
+    #sup-toolbar { position: fixed; bottom: 15px; left: 15px; background: var(--dark); padding: 8px 12px; display: flex; gap: 8px; border-radius: var(--radius); box-shadow: var(--shadow); z-index: 999999; transition: opacity 0.3s; }
+    .sup-btn { background: #334155; color: white; padding: 6px 12px; border-radius: var(--radius); border: none; cursor: pointer; font-size: 12px; font-weight: 600; }
+    .sup-btn:hover { background: #475569; }
+    .sup-btn.danger { background: var(--red); }
+    .sup-btn.success { background: var(--green); }
+    .sup-btn.blue { background: var(--blue); }
+    .sup-btn.orange { background: var(--orange); }
+
+    /* Styles des badges mis à jour */
+    .sup-badge { margin-right: 5px; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; display:inline-block; margin-bottom:4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+
+    .sup-badge.redline { background: #fff5f5; color: #dc2626; border: 1px solid #dc2626; text-transform: uppercase; }
+    .redline-border { border-left: 5px solid #dc2626 !important; background-color: #fffafa !important; }
+
+    /* Styles IA */
+    .sup-badge.ia-reject { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; } /* Rouge */
+    .sup-badge.ia-accept { background: #dcfce7; color: #166534; border: 1px solid #86efac; } /* Vert */
+    .sup-badge.ia-review { background: #ffedd5; color: #9a3412; border: 1px solid #fdba74; } /* Orange */
+
+    tr.picked-row td { background-color: #e0f2fe !important; }
+
+    .sup-pick-btn { display: inline-block; margin-top: 6px; padding: 4px 10px; border-radius: 4px; background: var(--blue); color: #fff; font-size: 11px; cursor: pointer; border:none; }
+    .sup-pick-btn:hover { background: #1d4ed8; }
+
+    #ia-panel, #kw-manager { position: fixed; z-index: 10000; background: white; box-shadow: var(--shadow); border-radius: var(--radius); }
+    #ia-panel { bottom: 65px; left: 15px; width: 280px; background: #0f172a; color: white; padding: 15px; }
+    #kw-manager { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 450px; height: 500px; display:flex; flex-direction:column; overflow:hidden; }
+    .kw-header { padding:15px; background: #f1f5f9; font-weight:bold; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; color:black;}
+    .kw-list { flex:1; overflow-y:auto; padding:10px; color:black; }
+    .kw-item { display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #f1f5f9; align-items:center; }
+    `);
+
+    /* ===========================================================
+       BLOC B : LISTES DE MOTS-CLÉS
+       =========================================================== */
+    const STATIC_SINGLE = [
+        "connard", "enculé", "nique", "merde", "bouffon", "crève", "gros con","barbu","arabe","terrorisme","bouffons","trolls","protégés par l'état","les protégés","bouns","bougnoules",
+        "radicalisé","un oqtf","oqtf","conneries","t'es un grand malade","blonds aux yeux bleus","ta mère",
+        "suédois","suède","pure souche","ordure","ordure du monde","ordures du monde",
+        "facho islamophobe","facho","djihadiste","étoiles jaunes","modération","propagande","journaliste","cons","cul","emmerder","crétin","gerber","minable","cerveau","cervelle",
+        "balle","mouton","cobaye","vache","œillère","gargamelle","gargamel","mengele","mengel","joseph",
+        "lobotomisé","hypocondriaque","décapite","peine","echafaud","mort","meurt","assassin","piqûre",
+        "crevez","crèvent","éliminer","assassiner","guillotine","décapitation","corde","injection",
+        "orthographe","bescherelle","bled","connard","pendu","famas","poubelle","misère","diversité",
+        "enrichissement","nom","prénom","origine","éradiqué","débilité","hitler","pétain","vichy",
+        "remplacement","débarras","bonjour","coucou","𝙬𝙝𝙖𝙩𝙨𝙖𝙥𝙥","pourriture","idiots","collabo",
+        "whatsapp","frustré","débile","crève","sioniste","sionistes","putain","timbré","clochard",
+        "pédophile","gueule","adolf","taré","foutre","blaireau","bléro","blairo","ftg","enculé",
+        "enkulé","encule","cruche","âne","batard","enculeur","chèvre","cassos","consanguin","raclure",
+        "débiles","fuck","couillons","couillon","salut","pendre","pendez","chier","bronze","bronzes",
+        "bronzee","bronzees","envahisseur","envahisseurs","invasion","invasions","basane","basanes",
+        "basanee","basanees","babouche","babouches","mohometan","mahometans","mahometants",
+        "mahometante","mahometantes","africanisation","balkanisation","lobby","lobbie","loby","lobie",
+        "bamako","caucasien","caucasienne","caucasiennes","caucasiens","islamisation","islamise",
+        "islamisee","islamiser","islamises","couscous","diversite","diversitaire","eurabia","matteo",
+        "antifrancais","antiblanc","antiblancs","renoi","renois","rebeu","reubeu","rebeus","reubeus",
+        "rebeux","infidele","infideles","judeo","juif","juifs","juive","juives","juife","arabes",
+        "heil","hail","itler","himmler","goebbels","gestapo","alloc","allocs","allocations",
+        "amalgame","amalgames","crif","mamadou","mohamed","mohameds","mouloud","rachid","kader",
+        "mossad","mossade","hh","fuhrer","fuhrere","furher","grandremplacement","cpf","talmud","talmude",
+        "goy","goys","goyim","goyims","remigration","remigrer","crelisation","crelistan","creolisation",
+        "roms","raciste","racistes","halal","hallal","maghrebin","maghrebine","maghrébine","maghrebines",
+        "immigre","immigres","immigree","immigrees","manouche","manouches","gitan","gitans",
+        "shoah","showha","shoa","choah","shoas","prenom","prenoms","antisemite","antisemites",
+        "antisemitisme","cmu","caf","mahomet","judaisme","judeite","shlomo","schlomo","shlomos",
+        "schlomos","chimpanzes","singe","singes","babouins","babouin","macaque","macaques","lfi",
+        "racaille","pedophilie","pédo","pédophile","paidofil","pédé"
+    ];
+    const STATIC_SETS = [
+        ["sale", "pute"],["espèce", "abruti"],["chaise","electrique"],["balle","tête"],["pieds","devant"],["mouton","neurone"],
+        ["gargamelle","gargamel"],["fils","de"],["fdp"],["encore","un"],["surement","un"],
+        ["inviter","mercredi"],["dîner","mercredi"],["libre","mercredi"],["sale","con"],
+        ["sale","connard"],["sale","merde"],["ta","gueule"],["sale","race"],
+        ["grand","remplacement"],["islamisation","islamisée"],["couscous","diversité"],
+        ["diversité","diversitaire"],["heil","hitler"],["adolf","hitler"],["mohamed","mouloud"],
+        ["maghreb","islamisation"],["remigration","rebeu"],["caucasien","caucasienne"],
+        ["juif","antisémitisme"],["lobby","diversité"],["shoah","négationnisme"],
+        ["raciste","islamophobie"],["extrême","droite"],["fasciste","nationaliste"],
+        ["communautaire","racisme"],["islam","intégrisme"],["toujours","les","mêmes"],
+        ["bande","de","c"],["encore","suédois"]
+    ];
+
+    /* ===========================================================
+       BLOC C : BDD
+       =========================================================== */
+    function openDB() {
+        return new Promise((resolve) => {
+            const req = indexedDB.open("SUP_ULTIMATE_DB_V15", 1);
+            req.onupgradeneeded = (e) => {
+                const d = e.target.result;
+                if (!d.objectStoreNames.contains("dataset")) d.createObjectStore("dataset", { keyPath: "id", autoIncrement: true });
+                if (!d.objectStoreNames.contains("model")) d.createObjectStore("model", { keyPath: "key" });
+                if (!d.objectStoreNames.contains("keywords")) d.createObjectStore("keywords", { keyPath: "word" });
+            };
+            req.onsuccess = (e) => { db = e.target.result; resolve(); };
+        });
+    }
+
+    /* ===========================================================
+       BLOC D : REDLINE (VISU & LOGIQUE)
+       =========================================================== */
+ /* ===========================================================
+       BLOC D : REDLINE (VISU & LOGIQUE) - MODIFIÉ
+       =========================================================== */
+    function cleanText(str) {
+        if (!str) return "";
+        // On remplace tout ce qui n'est pas lettre/chiffre par un espace pour bien isoler les mots
+        return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/<[^>]+>/g, " ").replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+    }
+
+    async function getAllKeywords() {
+        if (!db) await openDB();
+        return new Promise(resolve => {
+            const tx = db.transaction("keywords", "readonly");
+            tx.objectStore("keywords").getAll().onsuccess = e => {
+                const custom = (e.target.result || []).map(o => o.word);
+                resolve({ single: [...STATIC_SINGLE, ...custom], sets: STATIC_SETS });
+            };
+        });
+    }
+
+    async function checkRedline(text) {
+        const data = await getAllKeywords();
+        const clean = cleanText(text);
+
+        // 1. Mots simples : On utilise des "frontières de mots" (\b) pour éviter les faux positifs
+        // Ex: \bcon\b ne matchera pas "constatation"
+        for (let w of data.single) {
+            // On crée une Regex dynamique pour chercher le mot exact
+            const regex = new RegExp(`\\b${w}\\b`);
+            if (regex.test(clean)) return w;
+        }
+
+        // 2. Sets : On vérifie que TOUS les mots du set sont présents en tant que mots entiers
+        for (let set of data.sets) {
+            if (set.every(sw => new RegExp(`\\b${sw}\\b`).test(clean))) {
+                return set.join(" + ");
+            }
+        }
+        return null;
+    }
+
+    async function runAutoRedline() {
+        const tds = document.querySelectorAll('td[data-column-name="body"]');
+        for (const td of tds) {
+            if(td.dataset.redlineChecked) continue;
+            td.dataset.redlineChecked = "1";
+
+            const text = td.innerText;
+            const badWord = await checkRedline(text);
+
+            if (badWord) {
+                td.classList.add("redline-border");
+                let badge = document.createElement("span");
+                badge.className = "sup-badge redline";
+                badge.textContent = badWord;
+                td.prepend(badge);
+
+                // J'AI SUPPRIMÉ LA LIGNE QUI CLIQUAIT SUR REJECT AUTOMATIQUEMENT ICI
+                // Seul l'affichage (badge + bordure rouge) se fait.
+            }
+        }
+    }
+
+    /* ===========================================================
+       BLOC E : IA (MODIFICATION ICI POUR BADGES)
+       =========================================================== */
+    function addToDataset(text, label) {
+        if(!db) return;
+        const tx = db.transaction("dataset", "readwrite");
+        tx.objectStore("dataset").add({ text: cleanText(text), label, date: Date.now() });
+    }
+
+    async function trainIA() {
+        if (!db) await openDB();
+        const tx = db.transaction("dataset", "readonly");
+        const allData = await new Promise(r => tx.objectStore("dataset").getAll().onsuccess = e => r(e.target.result));
+        if (allData.length === 0) return alert("Dataset vide.");
+
+        const weights = {};
+        allData.forEach(item => {
+            const words = item.text.split(" ");
+            const impact = item.label === "reject" ? 3 : -1;
+            words.forEach(w => { if (w.length > 2) weights[w] = (weights[w] || 0) + impact; });
+        });
+
+        const txModel = db.transaction("model", "readwrite");
+        txModel.objectStore("model").put({ key: "weights", data: weights });
+        alert(`IA mise à jour (${allData.length} data).`);
+    }
+
+    async function analyzeIA(text, threshold) {
+        if (!db) await openDB();
+        const tx = db.transaction("model", "readonly");
+        const model = await new Promise(r => tx.objectStore("model").get("weights").onsuccess = e => r(e.target.result?.data || {}));
+        const words = cleanText(text).split(" ");
+        let score = 0;
+        words.forEach(w => { if (model[w]) score += model[w]; });
+        // Décision basée sur le seuil
+        return { score, decision: score >= threshold ? "reject" : (score <= 5 ? "accept" : "review") };
+    }
+
+    function learnFromPageGlobal() {
+        let cAcc = 0, cRej = 0;
+        document.querySelectorAll('tr').forEach(tr => {
+            const body = tr.querySelector('td[data-column-name="body"]')?.innerText;
+            if (!body) return;
+            const isRej = tr.querySelector('.btn-danger.active input') || tr.innerText.toLowerCase().includes("refus");
+            const isAcc = tr.querySelector('.btn-success.active input') || tr.innerText.toLowerCase().includes("valid");
+            if (isRej) { addToDataset(body, "reject"); cRej++; }
+            else if (isAcc) { addToDataset(body, "accept"); cAcc++; }
+        });
+        if (cAcc + cRej === 0) alert("Rien à apprendre."); else trainIA();
+    }
+
+
+async function runAnalysisUI() {
+        const threshold = parseInt(document.getElementById("ia-threshold")?.value || 30);
+        const tds = document.querySelectorAll('td[data-column-name="body"]');
+
+        for (const td of tds) {
+            // Si déjà marqué par Redline, on ignore l'IA
+            if(td.querySelector(".sup-badge.redline")) continue;
+
+            const res = await analyzeIA(td.innerText, threshold);
+
+            // --- MODIFICATION ICI : On plafonne le score entre 0 et 100 ---
+            // Si le score est supérieur à 100, on affiche 100.
+            let displayScore = res.score;
+            if (displayScore > 100) displayScore = 100;
+            if (displayScore < 0) displayScore = 0;
+            // -----------------------------------------------------------
+
+            let badge = td.querySelector(".sup-badge.ia-reject, .sup-badge.ia-accept, .sup-badge.ia-review");
+
+            if (!badge) {
+                badge = document.createElement("span");
+                td.prepend(badge);
+                td.appendChild(document.createElement("br"));
+            }
+
+            // On utilise maintenant 'displayScore' pour l'affichage, mais on garde 'res.decision' pour la couleur
+            if (res.decision === "reject") {
+                badge.innerHTML = `❌ Hors charte (${displayScore}%)`;
+                badge.className = `sup-badge ia-reject`;
+            } else if (res.decision === "accept") {
+                badge.innerHTML = `✅ OK (${displayScore}%)`;
+                badge.className = `sup-badge ia-accept`;
+            } else {
+                badge.innerHTML = `⚠️ A vérifier (${displayScore}%)`;
+                badge.className = `sup-badge ia-review`;
+            }
+        }
+    }
+
+    /* ===========================================================
+       BLOC F : PICKING & EXPORT
+       =========================================================== */
+    function savePickingList() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(pickedComments));
+        updatePickButtonLabel();
+    }
+
+    function getRowData(tr) {
+        let bodyCell = tr.querySelector('td[data-column-name="body"]');
+        let cleanBody = "";
+        if (bodyCell) {
+            let clone = bodyCell.cloneNode(true);
+            clone.querySelectorAll(".sup-pick-btn, .sup-badge").forEach(el => el.remove());
+            cleanBody = clone.innerText.trim();
+        }
+        return {
+            flux: tr.querySelector('td[data-column-name="origine"]')?.innerText.trim() || "",
+            statut: tr.querySelector('td[data-column-name="status"]')?.innerText.trim() || "",
+            operateur: tr.querySelector('td[data-column-name="operator"]')?.innerText.trim() || "",
+            datePost: tr.querySelector('td[data-column-name="date_post"]')?.innerText.trim() || "",
+            pseudo: tr.querySelector('td[data-column-name="pseudo"]')?.innerText.trim() || "",
+            body: cleanBody,
+            idn: tr.querySelector('input[name^="int_content_id"]')?.value || ""
+        };
+    }
+
+    function actionPickAll() {
+        document.querySelectorAll("#tbl_supervision tbody tr").forEach(tr => {
+            const idn = tr.querySelector('input[name^="int_content_id"]')?.value;
+            if(!idn || pickedComments.some(p => p.idn === idn)) return;
+            pickedComments.push(getRowData(tr));
+            tr.classList.add("picked-row");
+        });
+        savePickingList();
+    }
+
+    function openPickingPage() {
+        if(pickedComments.length === 0) return alert("Liste vide !");
+        const win = window.open("", "_blank");
+        const rows = pickedComments.map(r => `<tr><td>${r.flux}</td><td>${r.statut}</td><td>${r.operateur}</td><td>${r.datePost}</td><td>${r.pseudo}</td><td>${r.body}</td><td>${r.idn}</td></tr>`).join("");
+
+        win.document.write(`
+        <html><head><title>Export Picking</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+        <style>body{font-family:Arial;padding:20px;background:#f8f9fa}.header{display:flex;justify-content:space-between;margin-bottom:20px}table{width:100%;border-collapse:collapse;background:white}th,td{border:1px solid #ddd;padding:8px}th{background:#f1f5f9}button{padding:8px 15px;border:none;border-radius:4px;cursor:pointer;color:white;font-weight:bold}.btn-x{background:#16a34a}.btn-c{background:#dc2626}</style>
+        </head><body>
+        <div class="header"><h2>Export Picking (${pickedComments.length})</h2><div><button class="btn-x" onclick="dl()">📥 XLSX</button> <button class="btn-c" onclick="cl()">🗑️ Vider & Fermer</button></div></div>
+        <table id="t"><thead><tr><th>Flux</th><th>Statut</th><th>Opérateur</th><th>Date</th><th>Pseudo</th><th>Message</th><th>Id.N</th></tr></thead><tbody>${rows}</tbody></table>
+        <script>
+        function dl(){ var wb=XLSX.utils.book_new();var ws=XLSX.utils.table_to_sheet(document.getElementById('t'));XLSX.utils.book_append_sheet(wb,ws,"Picking");XLSX.writeFile(wb,"Export_Picking.xlsx"); }
+        function cl(){
+            if(window.opener && window.opener.clearPickingMemory) {
+                window.opener.clearPickingMemory();
+                window.close();
+            } else {
+                try { localStorage.removeItem("${STORAGE_KEY}"); alert("Mémoire vidée !"); window.close(); } catch(e) { alert("Erreur contact fenêtre."); }
+            }
+        }
+        </script></body></html>`);
+        win.document.close();
+    }
+
+    /* ===========================================================
+       BLOC G : BOUTON PICK
+       =========================================================== */
+    function addPickButtons() {
+        document.querySelectorAll('td[data-column-name="body"]:not([data-pick-added])').forEach(td => {
+            td.setAttribute("data-pick-added", "1");
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "sup-pick-btn";
+            btn.textContent = "Pick";
+
+            const tr = td.parentElement;
+            const idn = tr.querySelector('input[name^="int_content_id"]')?.value;
+            if(idn && pickedComments.some(p => p.idn === idn)) {
+                tr.classList.add("picked-row");
+                btn.style.background = "#dc2626";
+                btn.textContent = "Déjà Pické ✓";
+            }
+
+            btn.onclick = (e) => {
+                e.preventDefault(); e.stopPropagation();
+                const data = getRowData(tr);
+                if (!pickedComments.some(p => p.idn === data.idn)) {
+                    pickedComments.push(data);
+                    savePickingList();
+                }
+                const rejectRadio = tr.querySelector("label.btn-danger input[type=radio]");
+                if (rejectRadio) rejectRadio.click();
+                addToDataset(td.innerText, "reject");
+                btn.style.background = "#dc2626";
+                btn.textContent = "Pické ✓";
+                tr.classList.add("picked-row");
+            };
+
+            td.appendChild(document.createElement("br"));
+            td.appendChild(btn);
+        });
+    }
+
+    /* ===========================================================
+       BLOC H : TOOLBAR
+       =========================================================== */
+    function createToolbar() {
+        if (document.getElementById("sup-toolbar")) return;
+        if (!document.getElementById("tbl_supervision") && !document.querySelector(".table-striped")) return;
+
+        const bar = document.createElement("div"); bar.id="sup-toolbar";
+
+        const bPick = mkBtn(`Pick All (${pickedComments.length})`, actionPickAll, "blue"); bPick.id="btn-pick-all";
+        const bExp = mkBtn("Traiter Picking", openPickingPage, "success");
+        const bKw = mkBtn("Mots-Clés", openKeywordsUI, "orange");
+        const bIA = mkBtn("IA Control ▼", toggleIAPanel, "");
+        const bRej = mkBtn("Reject All", ()=>document.querySelectorAll("label.btn-danger input").forEach(e=>e.click()), "danger");
+        const bAcc = mkBtn("Accept All", ()=>document.querySelectorAll("label.btn-success input").forEach(e=>e.click()), "success");
+
+        bar.append(bPick, bExp, bKw, bIA, document.createElement("div"), bRej, bAcc);
+        document.body.appendChild(bar);
+    }
+
+    function mkBtn(t,f,c){ const b=document.createElement("button"); b.type="button"; b.className="sup-btn "+c; b.textContent=t; b.onclick=f; return b; }
+
+    function toggleIAPanel() {
+        let p = document.getElementById("ia-panel");
+        if (p) { p.remove(); return; }
+        p = document.createElement("div"); p.id="ia-panel";
+        p.innerHTML = `<h3>IA Control</h3><button id="br" class="sup-btn" style="width:100%">Lancer Analyse</button><div style="margin:10px 0"><label>Seuil de Sévérité (<span id="v">30</span>)</label><input type="range" id="tr" min="0" max="100" value="30" style="width:100%"><small style="color:#cbd5e1">Plus bas = Plus sévère</small></div><button id="bl" class="sup-btn success" style="width:100%">Apprendre Page</button><button id="bz" class="sup-btn danger" style="width:100%;margin-top:5px">Reset IA</button>`;
+        document.body.appendChild(p);
+        p.querySelector("#tr").oninput=e=>p.querySelector("#v").textContent=e.target.value;
+        p.querySelector("#br").onclick=runAnalysisUI;
+        p.querySelector("#bl").onclick=learnFromPageGlobal;
+        p.querySelector("#bz").onclick=()=>{ if(confirm("Vider?")) { const tx=db.transaction(["dataset","model"],"readwrite");tx.objectStore("dataset").clear();tx.objectStore("model").clear();alert("Fait."); }};
+    }
+
+    function openKeywordsUI() {
+        document.getElementById("kw-manager")?.remove();
+        const div = document.createElement("div"); div.id="kw-manager";
+        div.innerHTML = `<div class="kw-header"><span>Mots-Clés Perso</span><button id="kc">X</button></div><div class="kw-list" id="kl"></div><div style="padding:10px;display:flex"><input id="ki" style="flex:1"><button id="ka" class="sup-btn blue">+</button></div>`;
+        document.body.appendChild(div);
+        function r(){ const l=div.querySelector("#kl"); l.innerHTML=""; if(!db)return; db.transaction("keywords","readonly").objectStore("keywords").getAll().onsuccess=e=>{ (e.target.result||[]).forEach(k=>{ const d=document.createElement("div");d.className="kw-item";d.innerHTML=`<span>${k.word}</span><button>X</button>`;d.querySelector("button").onclick=()=>{db.transaction("keywords","readwrite").objectStore("keywords").delete(k.word);r();};l.appendChild(d); }); }; }
+        r();
+        div.querySelector("#kc").onclick=()=>div.remove();
+        div.querySelector("#ka").onclick=()=>{ const v=div.querySelector("#ki").value; if(v){db.transaction("keywords","readwrite").objectStore("keywords").put({word:cleanText(v)});div.querySelector("#ki").value="";r();} };
+    }
+
+    /* ===========================================================
+       BLOC I : BOUCLE PRINCIPALE
+       =========================================================== */
+    function mainLoop() {
+        createToolbar();
+        runAutoRedline();
+        addPickButtons();
+    }
+
+    (async function init() {
+        await openDB();
+        setInterval(mainLoop, 1500);
+        new MutationObserver(mainLoop).observe(document.body, {childList:true, subtree:true});
+    })();
+
+})();
