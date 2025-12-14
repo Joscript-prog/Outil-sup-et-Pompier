@@ -200,97 +200,164 @@
         }
     }
 
-    /* ===========================================================
-       BLOC E : IA (MODIFICATION ICI POUR BADGES)
+   /* ===========================================================
+       BLOC E : IA (CORRIGÉ & AMÉLIORÉ)
        =========================================================== */
+    
+    // Nettoyage amélioré pour l'IA : garde les accents, vire ponctuation et mots courts
+    function cleanTextForAI(text) {
+        return text.toLowerCase()
+            .replace(/<[^>]*>/g, '') // Vire le HTML
+            .replace(/[^\w\sàâäéèêëîïôöùûüç]/gi, ' ') // Garde lettres + accents
+            .replace(/\s+/g, ' ')
+            .trim()
+            .split(' ')
+            .filter(w => w.length > 2); // Ignore les mots de 1 ou 2 lettres
+    }
+
     function addToDataset(text, label) {
         if(!db) return;
         const tx = db.transaction("dataset", "readwrite");
-        tx.objectStore("dataset").add({ text: cleanText(text), label, date: Date.now() });
+        // On stocke le texte brut, le nettoyage se fera au moment de l'entraînement
+        tx.objectStore("dataset").add({ text: text, label, date: Date.now() });
     }
 
     async function trainIA() {
         if (!db) await openDB();
         const tx = db.transaction("dataset", "readonly");
         const allData = await new Promise(r => tx.objectStore("dataset").getAll().onsuccess = e => r(e.target.result));
-        if (allData.length === 0) return alert("Dataset vide.");
+        
+        if (allData.length === 0) return alert("Dataset vide. Apprenez d'abord des pages.");
 
-        const weights = {};
+        // 1. INITIALISATION DES COMPTEURS
+        const tokens = {}; 
+        let totalBad = 0;
+        let totalGood = 0;
+        const dynamicRedline = []; // Liste des mots appris comme "toxiques stricts"
+
+        // 2. ANALYSE DU DATASET
         allData.forEach(item => {
-            const words = item.text.split(" ");
-            const impact = item.label === "reject" ? 3 : -1;
-            words.forEach(w => { if (w.length > 2) weights[w] = (weights[w] || 0) + impact; });
+            const words = cleanTextForAI(item.text);
+            const isReject = (item.label === "reject");
+
+            if (isReject) totalBad++; else totalGood++;
+
+            words.forEach(w => {
+                if (!tokens[w]) tokens[w] = { bad: 0, good: 0 };
+                if (isReject) tokens[w].bad++;
+                else tokens[w].good++;
+            });
         });
 
+        // 3. CALCUL DES POIDS (Lissage de Laplace & Log-Likelihood)
+        const weights = {};
+        
+        for (const [word, counts] of Object.entries(tokens)) {
+            // A. DÉTECTION REDLINE DYNAMIQUE
+            // Si un mot apparait souvent (>3 fois) en REJET et JAMAIS en VALIDÉ
+            if (counts.bad >= 4 && counts.good === 0) {
+                dynamicRedline.push(word);
+            }
+
+            // B. CALCUL PROBABILISTE (Évite le problème du 100% bloqué)
+            // On ajoute +1 au numérateur et +2 au dénominateur pour "lisser" les stats
+            const pBad = (counts.bad + 1) / (totalBad + 2);
+            const pGood = (counts.good + 1) / (totalGood + 2);
+            
+            // Score logarithmique
+            weights[word] = Math.log(pBad / pGood);
+        }
+
+        // 4. SAUVEGARDE DU MODÈLE
         const txModel = db.transaction("model", "readwrite");
-        txModel.objectStore("model").put({ key: "weights", data: weights });
-        alert(`IA mise à jour (${allData.length} data).`);
+        // On sauvegarde les poids ET la liste des mots interdits découverts
+        txModel.objectStore("model").put({ key: "brain", data: { weights, dynamicRedline } });
+        
+        console.log(`IA Entraînée : ${allData.length} comms, ${dynamicRedline.length} mots toxiques appris.`);
+        alert(`IA mise à jour !\nData: ${allData.length} avis.\nMots toxiques appris: ${dynamicRedline.length}`);
     }
 
     async function analyzeIA(text, threshold) {
         if (!db) await openDB();
         const tx = db.transaction("model", "readonly");
-        const model = await new Promise(r => tx.objectStore("model").get("weights").onsuccess = e => r(e.target.result?.data || {}));
-        const words = cleanText(text).split(" ");
-        let score = 0;
-        words.forEach(w => { if (model[w]) score += model[w]; });
-        // Décision basée sur le seuil
-        return { score, decision: score >= threshold ? "reject" : (score <= 5 ? "accept" : "review") };
+        const modelData = await new Promise(r => tx.objectStore("model").get("brain").onsuccess = e => r(e.target.result?.data));
+
+        if (!modelData) return { score: 0, decision: "review" }; // Pas de cerveau encore
+
+        const weights = modelData.weights || {};
+        const dynRedline = modelData.dynamicRedline || [];
+        const words = cleanTextForAI(text);
+        
+        let scoreLog = 0;
+        let foundToxic = null;
+
+        // 1. VÉRIFICATION REDLINE DYNAMIQUE (Priorité absolue)
+        for (let w of words) {
+            if (dynRedline.includes(w)) {
+                foundToxic = w;
+                break;
+            }
+        }
+
+        if (foundToxic) {
+            // Si mot interdit appris trouvé -> 100% Rejet direct
+            return { score: 100, decision: "reject", details: foundToxic };
+        }
+
+        // 2. CALCUL DU SCORE BAYESIEN
+        words.forEach(w => {
+            if (weights[w]) {
+                scoreLog += weights[w];
+            }
+        });
+
+        // 3. NORMALISATION (Sigmoïde) -> Transforme le score infini en 0-100%
+        // Cette formule garantit une courbe progressive
+        let probability = 1 / (1 + Math.exp(-scoreLog)); 
+        let finalPercent = Math.floor(probability * 100);
+
+        // Décision finale
+        let decision = "review";
+        if (finalPercent >= threshold) decision = "reject";
+        if (finalPercent <= 15) decision = "accept"; // Marge de sécurité pour le vert
+
+        return { score: finalPercent, decision: decision };
     }
 
     function learnFromPageGlobal() {
         let cAcc = 0, cRej = 0;
+        // Sélecteur adapté pour trouver les lignes
         document.querySelectorAll('tr').forEach(tr => {
             const body = tr.querySelector('td[data-column-name="body"]')?.innerText;
             if (!body) return;
-            const isRej = tr.querySelector('.btn-danger.active input') || tr.innerText.toLowerCase().includes("refus");
-            const isAcc = tr.querySelector('.btn-success.active input') || tr.innerText.toLowerCase().includes("valid");
-            if (isRej) { addToDataset(body, "reject"); cRej++; }
-            else if (isAcc) { addToDataset(body, "accept"); cAcc++; }
+
+            // Détection du statut actuel (pour apprendre ce que l'humain a fait)
+            // On regarde si la case "Refuser" est cochée ou si la ligne est rouge
+            const activeReject = tr.querySelector('label.btn-danger.active') !== null;
+            const activeAccept = tr.querySelector('label.btn-success.active') !== null;
+            
+            // On regarde aussi les classes de couleur de Moderatus (status-refused / status-accepted)
+            const isRefusedClass = tr.classList.contains('status-refused') || tr.style.backgroundColor.indexOf('255,') > -1;
+            const isAcceptedClass = tr.classList.contains('status-accepted');
+
+            if (activeReject || isRefusedClass) {
+                addToDataset(body, "reject");
+                cRej++;
+            } else if (activeAccept || isAcceptedClass) {
+                addToDataset(body, "accept");
+                cAcc++;
+            }
         });
-        if (cAcc + cRej === 0) alert("Rien à apprendre."); else trainIA();
-    }
 
-
-async function runAnalysisUI() {
-        const threshold = parseInt(document.getElementById("ia-threshold")?.value || 30);
-        const tds = document.querySelectorAll('td[data-column-name="body"]');
-
-        for (const td of tds) {
-            // Si déjà marqué par Redline, on ignore l'IA
-            if(td.querySelector(".sup-badge.redline")) continue;
-
-            const res = await analyzeIA(td.innerText, threshold);
-
-            // --- MODIFICATION ICI : On plafonne le score entre 0 et 100 ---
-            // Si le score est supérieur à 100, on affiche 100.
-            let displayScore = res.score;
-            if (displayScore > 100) displayScore = 100;
-            if (displayScore < 0) displayScore = 0;
-            // -----------------------------------------------------------
-
-            let badge = td.querySelector(".sup-badge.ia-reject, .sup-badge.ia-accept, .sup-badge.ia-review");
-
-            if (!badge) {
-                badge = document.createElement("span");
-                td.prepend(badge);
-                td.appendChild(document.createElement("br"));
-            }
-
-            // On utilise maintenant 'displayScore' pour l'affichage, mais on garde 'res.decision' pour la couleur
-            if (res.decision === "reject") {
-                badge.innerHTML = `❌ Hors charte (${displayScore}%)`;
-                badge.className = `sup-badge ia-reject`;
-            } else if (res.decision === "accept") {
-                badge.innerHTML = `✅ OK (${displayScore}%)`;
-                badge.className = `sup-badge ia-accept`;
-            } else {
-                badge.innerHTML = `⚠️ A vérifier (${displayScore}%)`;
-                badge.className = `sup-badge ia-review`;
-            }
+        if (cAcc + cRej === 0) {
+            alert("Aucun statut (Validé/Refusé) détecté sur cette page.\nFiltrez par 'Validés' ou 'Refusés' avant d'apprendre.");
+        } else {
+            // Petit délai pour laisser le temps à IndexedDB d'écrire avant de relire pour l'entrainement
+            setTimeout(() => {
+                trainIA();
+            }, 500);
         }
     }
-
     /* ===========================================================
        BLOC F : PICKING & EXPORT
        =========================================================== */
@@ -452,5 +519,6 @@ async function runAnalysisUI() {
         setInterval(mainLoop, 1500);
         new MutationObserver(mainLoop).observe(document.body, {childList:true, subtree:true});
     })();
+
 
 })();
