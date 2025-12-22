@@ -408,38 +408,60 @@
 
     // 1. LE DICTIONNAIRE TOXIQUE (Base de connaissance innée)
     // L'IA sait déjà que ces mots sont suspects. Elle va juste vérifier s'ils apparaissent souvent.
-    const BASE_TOXIC_ROOTS = [
-        "abruti", "abrutis", "encule", "enculé", "connard", "connards", "conasse", "connasse", "salope", "pute", "putain",
-        "merde", "chier", "chiant", "chiante", "bâtard", "batard", "bouffon", "bouffons", "debile", "débile", "gogol",
-        "trisomique", "handicapé", "autiste", "mongol", "ferme", "gueule", "ftg", "fdp", "ntm", "nique", "niquer",
-        "baise", "baiser", "suce", "sucer", "boule", "bite", "couille", "couilles", "chatte", "fesse", "fesses",
-        "cul", "anus", "fion", "pd", "pédé", "gouine", "tarlouze", "tafiole", "pedale", "pédale", "travelo",
-        "negre", "nègre", "negro", "négro", "bamboula", "bougnoule", "bougnoul", "bicot", "raton", "youpin", "feuj",
-        "sida", "cancer", "crève", "mourir", "mort", "tuer", "tuez", "flinguer", "balle", "pendre", "pendaison",
-        "guillotine", "echafaud", "goulag", "hitler", "nazi", "nazis", "collabo", "collabos", "fasciste", "facho",
-        "raciste", "raclure", "ordure", "poubelle", "dechet", "déchet", "parasite", "vermine", "rat", "rats",
-        "cafard", "cafards", "menteur", "menteuse", "mythomane", "mytho", "escroc", "arnaque", "voleur", "voyou",
-        "bandit", "mafieux", "corrompu", "pourri", "pourriture", "degage", "dégage", "casse", "barre", "honte",
-        "scandale", "incompetent", "incapable", "nul", "minable", "lamentable", "pathetique", "pathétique",
-        "clown", "guignol", "pantin", "marionnette", "mouton", "moutons", "veau", "veaux", "ane", "âne",
-        "chevre", "chèvre", "vache", "gros", "grosse", "laideron", "boudin", "thou", "morue", "truie",
-        "pute", "catin", "grognasse", "pouffiasse", "garce", "chienne", "salopard", "salaud", "ignare", "idiot",
-        "imbecile", "imbécile", "cretin", "crétin", "stupide", "bete", "bête", "niais", "cruche", "tache",
-        "toocard", "tocard", "boulet", "beauf", "blaireau", "boloss", "cassos", "charogne", "crevure",
-        "enflure", "foutre", "branleur", "branle", "branlette", "gland", "glandu", "manche", "mou",
-        "lavette", "lopette", "fiotte", "tapette", "zob", "teub", "pine", "vit", "verge", "semence",
-        "sperme", "cyprine", "fellation", "cunnilingus", "sodomie", "sodomiser", "violer", "viol",
-        "harceleur", "pedophile", "pédophile", "pointeur", "barbare", "sauvage", "terroriste", "djihadiste",
-        "kamikaze", "bombe", "explosif", "arme", "fusil", "couteau", "sang", "massacre", "genocide", "génocide",
-        "holocauste", "shoah", "epuration", "épuration", "grand", "remplacement", "invasion", "envahisseur",
-        "migrant", "immigre", "clandestin", "sans-papier", "oqtf", "caf", "allocs", "assiste", "assisté",
-        "profiteur", "faineant", "fainéant", "branleur", "bon", "rien", "parasite", "sangsu", "vampire",
-        "illuminati", "complot", "mason", "maçon", "sioniste", "sionisme", "lobby", "banquier", "rothschild",
-        "soros", "gates", "pucé", "puce", "5g", "graphene", "graphène", "poison", "toxique", "venin",
-        "vipere", "vipère", "hyene", "hyène", "vautour", "charognard", "rapace", "pretre", "prêtre", "cure", "curé",
-        "imam", "rabbin", "pedociminal", "sataniste", "rituel", "sacrifie", "sacrifice", "sang", "boire",
-        "adrenochrome", "elite", "mondialiste", "globaliste", "nouvel", "ordre", "davos", "wef"
-    ];
+   /* ===========================================================
+   DICTIONNAIRE TOXIQUE CENTRAL (ULTRA STRICT)
+   =========================================================== */
+
+const TOXIC_LEXICON = {
+  insultes: [
+    "abruti","abrutis","con","connard","connards","conne","connes","conasse","connasse",
+    "idiot","idiots","imbecile","imbécile","cretin","crétin","debile","débile","débilos",
+    "gogol","bouffon","bouffons","clown","guignol","pantin","blaireau","beauf","boloss",
+    "tocard","toocard","cassos","cassosserie","minable","lamentable","pathétique","pathétique",
+    "nul","nuls","incapable","incompetent","incompétent","honteux","ridicule","pitoyable"
+  ],
+
+  insultes_sexuelles: [
+    "pute","putain","salope","catin","pouffiasse","garce","chienne",
+    "encule","enculé","encules","enculés","enculer","fdp","ntm","nique","niquer",
+    "baise","baiser","bite","couille","couilles","cul","chatte","teub","zob","pine"
+  ],
+
+  dehumanisation: [
+    "rat","rats","parasite","parasites","vermine","cafard","cafards",
+    "charogne","dechet","déchet","pourriture","merde","ordure","ordures",
+    "poubelle","chien","chiens","singe","singes","babouin","babouins"
+  ],
+
+  violence: [
+    "tuer","tuez","tuerai","buter","buttez","flinguer","abattre","abattus",
+    "pendre","pendaison","guillotine","decapiter","décapiter","egorger","égorger",
+    "mort","crever","crève","crevez","assassiner","massacrer","balle","fusil",
+    "arme","couteau","exploser","bruler","brûler"
+  ],
+
+  haine_identitaire: [
+    "raciste","racistes","racisme","xenophobe","xénophobe",
+    "antisemite","antisémite","antisemitisme","antisemitisme",
+    "islamophobe","islamophobie","negrophobe","négrophobe",
+    "nazi","nazis","facho","fasciste","hitler","shoah","holocauste",
+    "juif","juifs","arabe","arabes","noir","noirs","blanc","blancs",
+    "immigre","immigrés","migrant","migrants","oqtf","clandestin"
+  ],
+
+  denigrement: [
+    "menteur","menteuse","mytho","mythomane","escroc","escrocs",
+    "voleur","voleurs","arnaqueur","arnaqueurs","tricheur",
+    "corrompu","corrompus","vendu","vendus","pourri","pourris"
+  ]
+};
+    const HUMAN_TARGETS = [
+  "tu","toi","vous","ils","elles","eux","ces gens","ces types",
+  "les mecs","les types","ces individus","ces personnes",
+  "immigrés","arabes","juifs","noirs","blancs","français",
+  "politiciens","journalistes","medias","journaliste"
+];
+
 
     const STOPWORDS = new Set([
         "le", "la", "les", "un", "une", "des", "ce", "cet", "cette", "ces", "mon", "ton", "son",
@@ -453,39 +475,60 @@
     ]);
 
     // 1. Nettoyage & Extraction
-    function cleanTextForAI(text) {
-        // On remplace la ponctuation par des espaces pour ne pas coller les mots
-        const raw = text.toLowerCase()
-            .replace(/<[^>]*>/g, '')
-            .replace(/[^\w\sàâäéèêëîïôöùûüç]/gi, ' ')
-            .replace(/\s+/g, ' ')
-            .trim();
+function cleanTextForAI(text) {
+  if (!text || typeof text !== "string") return [];
 
-        const words = raw.split(' ');
-        const tokens = [];
+  const raw = text.toLowerCase()
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/[^\w\sàâäéèêëîïôöùûüç]/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
-        // A. Mots simples (Unigrams)
-        words.forEach(w => {
-            if (w.length > 2 && !STOPWORDS.has(w)) tokens.push(w);
-        });
+  const words = raw.split(' ');
+  const tokens = [];
 
-        // B. Bigrams (Paires de mots) - Très utile pour "Bien fait", "Gros con"
-        for (let i = 0; i < words.length - 1; i++) {
-            const w1 = words[i];
-            const w2 = words[i+1];
-            if (w1.length > 2 && w2.length > 2 && !STOPWORDS.has(w1) && !STOPWORDS.has(w2)) {
-                tokens.push(`${w1} ${w2}`);
-            }
-        }
-        return tokens;
+  words.forEach(w => {
+    if (w.length > 2 && !STOPWORDS.has(w)) tokens.push(w);
+  });
+
+  for (let i = 0; i < words.length - 1; i++) {
+    const w1 = words[i];
+    const w2 = words[i + 1];
+    if (w1.length > 2 && w2.length > 2 &&
+        !STOPWORDS.has(w1) && !STOPWORDS.has(w2)) {
+      tokens.push(`${w1} ${w2}`);
     }
+  }
+
+  return tokens;
+}
 
     // 2. Base de données
-    function addToDataset(text, label) {
-        if(!db) return;
-        const tx = db.transaction("dataset", "readwrite");
-        tx.objectStore("dataset").add({ text: text, label: label, date: Date.now() });
-    }
+   function extractLearnableTokens(text) {
+  const clean = cleanText(text);
+  const tokens = [];
+
+  Object.values(TOXIC_LEXICON).flat().forEach(w => {
+    if (clean.includes(w)) tokens.push(w);
+  });
+
+  return [...new Set(tokens)];
+}
+
+function addToDataset(text, label) {
+  if (!db) return;
+
+  const tokens = extractLearnableTokens(text);
+  if (tokens.length === 0) return; // ⛔ RIEN À APPRENDRE
+
+  const tx = db.transaction("dataset", "readwrite");
+  tx.objectStore("dataset").add({
+    tokens,
+    label,
+    date: Date.now()
+  });
+}
+
 
     // 3. Entraînement CHIRURGICAL
     async function trainIA() {
@@ -572,47 +615,115 @@
         alert(`IA Hybride à jour !\n\nL'IA a utilisé le Dictionnaire Toxique pour filtrer les faux positifs.\nElle ne retiendra "Trump" comme insulte que s'il est rejeté SEUL (sans autre insulte connue).`);
     }
 
-    // 4. Analyse
-    async function analyzeIA(text, threshold) {
-        if (!db) await openDB();
-        const tx = db.transaction("model", "readonly");
-        const modelData = await new Promise(r => tx.objectStore("model").get("brain").onsuccess = e => r(e.target.result?.data));
+function detectToxicSignals(text) {
+  if (!text || typeof text !== "string") {
+    return { score: 0, reasons: [] };
+  }
 
-        if (!modelData) return { score: 0, decision: "review" };
+  const clean = cleanText(text);
+  let score = 0;
+  let reasons = [];
 
-        const weights = modelData.weights || {};
-        const dynRedline = modelData.dynamicRedline || [];
-        const tokens = cleanTextForAI(text);
+  /* ============================
+     1. Ciblage humain (mot entier)
+     ============================ */
+  const hasTarget = HUMAN_TARGETS.some(t => hasWholeWord(clean, t));
 
-        // A. Vérif Redline Dynamique (Mots 100% interdits appris)
-        for (let t of tokens) {
-            if (dynRedline.includes(t)) return { score: 100, decision: "reject", details: t };
-        }
+  /* ============================
+     2. Scan lexique toxique
+     (MOT ENTIER UNIQUEMENT)
+     ============================ */
+  function scanCategory(cat, weight) {
+    TOXIC_LEXICON[cat].forEach(w => {
+      if (hasWholeWord(clean, w)) {
+        score += weight;
+        reasons.push(w);
+      }
+    });
+  }
 
-        // B. Vérif Dictionnaire Toxique Immédiat (Si présent, on rejette direct aussi)
-        for (let t of tokens) {
-            if (BASE_TOXIC_ROOTS.some(root => t === root || t.startsWith(root))) { // Match exact ou début
-                 // On vérifie quand même si ce mot n'a pas été "blanchi" (good > bad dans les poids)
-                 if (weights[t] && weights[t] < 0) continue; // Si le poids est négatif, c'est que c'est devenu acceptable
-                 return { score: 100, decision: "reject", details: `DICO: ${t}` };
-            }
-        }
+  scanCategory("insultes", 25);
+  scanCategory("insultes_sexuelles", 35);
+  scanCategory("dehumanisation", 40);
+  scanCategory("violence", 60);
+  scanCategory("haine_identitaire", 70);
+  scanCategory("denigrement", 20);
 
-        // C. Calcul Score Probabiliste (Pour le reste)
-        let scoreLog = 0;
-        tokens.forEach(t => {
-            if (weights[t]) scoreLog += weights[t];
-        });
+  /* ============================
+     3. Bonus attaque ciblée
+     ============================ */
+  if (score > 0 && hasTarget) {
+    score += 30;
+  }
 
-        let probability = 1 / (1 + Math.exp(-scoreLog));
-        let finalPercent = Math.floor(probability * 100);
+  /* ============================
+     4. Indices d’agressivité
+     ============================ */
+  if (text === text.toUpperCase() && text.length > 10) {
+    score += 10;
+  }
 
-        let decision = "review";
-        if (finalPercent >= threshold) decision = "reject";
-        if (finalPercent <= 20) decision = "accept";
+  if ((text.match(/!/g) || []).length >= 3) {
+    score += 10;
+  }
 
-        return { score: finalPercent, decision: decision };
-    }
+  return {
+    score,
+    reasons: [...new Set(reasons)]
+  };
+}
+
+
+
+async function analyzeIA(text, threshold) {
+  // Sécurité absolue
+  if (!text || typeof text !== "string") {
+    return { score: 0, decision: "accept" };
+  }
+
+  const res = detectToxicSignals(text);
+
+  // Rejet clair
+  if (res.score >= threshold) {
+    return {
+      score: Math.min(res.score, 100),
+      decision: "reject",
+      details: res.reasons && res.reasons.length
+        ? res.reasons.slice(0, 3).join(", ")
+        : "Hors charte"
+    };
+  }
+
+  // Acceptation claire
+  if (res.score <= 10) {
+    return {
+      score: res.score,
+      decision: "accept"
+    };
+  }
+
+  // Zone grise
+  return {
+    score: res.score,
+    decision: "review"
+  };
+}
+
+/* ===========================================================
+   DÉTECTION MOT ENTIER (ANTI FAUX POSITIFS)
+   =========================================================== */
+function hasWholeWord(text, word) {
+  if (!text || !word) return false;
+
+  // Sécurise le mot (échappement regex)
+  const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  // \b = frontière de mot (évite rat dans ingratitude)
+  const regex = new RegExp(`\\b${escaped}\\b`, "i");
+
+  return regex.test(text);
+}
+
 
     // 5. Interface UI (Inchangée)
     async function runAnalysisUI() {
